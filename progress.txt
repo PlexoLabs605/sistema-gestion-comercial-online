@@ -1,0 +1,102 @@
+## Codebase Patterns
+- Database models use snake_case for field names (mapped with @map)
+- All monetary values use Decimal type with @db.Decimal(10, 2)
+- All tables have createdAt/updatedAt timestamps
+- Relations use onDelete: Cascade for items, RESTRICT for references
+- Indexes added for foreign keys and frequently queried fields
+
+---
+
+## 2026-01-12 20:23 - US-009 Sales Database Models
+- **Implementado**: Modelos de base de datos para sistema de ventas
+- **Archivos modificados**:
+  - prisma/schema.prisma (agregado Sale y SaleItem models)
+  - prisma/migrations/20260112202326_add_sales_models/migration.sql
+- **Learnings para futuras iteraciones**:
+  - Los modelos Sale y SaleItem ya existían parcialmente, solo faltaba agregar la relación en ProductVariant
+  - La migración solo agregó la foreign key faltante (sale_items -> product_variants)
+  - El esquema sigue el patrón establecido: snake_case para campos DB, camelCase en Prisma
+  - payment_method: cash/card/transfer para método de pago
+  - price_type: cash/debit/financed para determinar qué precio usar al calcular
+  - Importante: SaleItem NO tiene timestamps (createdAt/updatedAt) para simplificar
+- **Próximo paso**: US-010 - Implementar API backend para registrar ventas con decremento automático de stock
+
+---
+
+## 2026-01-12 20:50 - US-010 Sales Backend API
+- **Implementado**: API completa de ventas con validación y decremento automático de stock
+- **Archivos creados**:
+  - src/app/api/sales/route.ts (POST y GET /api/sales)
+  - src/app/api/sales/[id]/route.ts (GET /api/sales/:id)
+  - test-sales-api.js (tests con autenticación)
+  - test-sales-api.sh (tests alternativos en bash)
+- **Learnings para futuras iteraciones**:
+  - Transacciones Prisma con $transaction garantizan atomicidad completa
+  - Patrón: verificar stock → calcular precios → crear venta → decrementar stock (todo en una transacción)
+  - Usar .mul() y .add() de Decimal para cálculos monetarios precisos
+  - Errores de negocio lanzados en transacción hacen rollback automático
+  - priceType determina qué campo de precio usar: cash→priceCash, debit→priceDebit, financed→priceFinanced
+  - Validaciones exhaustivas antes de transacción evitan rollbacks innecesarios
+  - Mensajes de error detallados (incluyen producto y variante específica)
+  - Importante: Los productos importados tienen precios en 0, necesitan actualización manual antes de poder vender
+- **Próximo paso**: US-011 - Interfaz de registro de ventas (formulario + listado)
+
+---
+
+## 2026-01-12 21:40 - US-011 Sales Registration Interface
+- **Implementado**: Interfaz completa de ventas con formulario y listado
+- **Archivos creados**:
+  - src/app/ventas/nueva/page.tsx (formulario de nueva venta - 650 líneas)
+  - src/app/ventas/page.tsx (actualizado - listado y detalle de ventas)
+- **Learnings para futuras iteraciones**:
+  - useEffect para actualizar precios cuando cambia priceType evita recalcular manualmente
+  - Búsqueda en tiempo real con filter() de array local es más rápida que API calls
+  - showResults flag para controlar dropdown evita renderizado innecesario
+  - Validación de stock en updateQuantity previene errores antes de submit
+  - Sticky summary panel (position: sticky) mantiene visibilidad del total al hacer scroll
+  - Router.push() después del éxito proporciona mejor UX que recargar página
+  - Modal de detalle reutiliza estructura de datos del listado
+  - Calcular stats (hoy/mes/total/promedio) en el cliente es eficiente con datasets pequeños
+  - Badges con colores diferentes para payment method y price type mejoran escaneabilidad visual
+  - Empty state con CTA incrementa conversión de usuarios a primera acción
+- **Próximo paso**: Testing en navegador y correcciones de UX si es necesario
+
+---
+
+## 2026-01-12 22:00 - US-012 Dashboard Principal
+- **Implementado**: Dashboard completo con métricas reales en tiempo real
+- **Archivos modificados**:
+  - src/app/dashboard/page.tsx (reescrito completamente - 430 líneas)
+- **Learnings para futuras iteraciones**:
+  - Fetch paralelo de múltiples APIs (sales + products) optimiza tiempo de carga
+  - calculateStats como función separada facilita testing y mantenimiento
+  - Filtrado de fechas con .startsWith() es más rápido que Date comparisons para mismo día/mes
+  - Color coding en cards (green/blue/red/purple) mejora escaneabilidad de métricas
+  - Banner de alerta condicional (solo si lowStockCount > 0) reduce ruido visual
+  - Empty states específicos por sección (ventas vs stock) mejoran UX
+  - Links directos desde dashboard a acciones (ej: lowStock → /productos?filter=lowStock) acelera workflow
+  - Animaciones CSS con group-hover y scale transform agregan polish sin JavaScript
+  - Badge de "Sin stock" vs "Bajo" con colores diferentes ayuda a priorizar
+  - Loading state genérico ("Cargando...") es suficiente para dashboard, no necesita skeleton
+- **Próximo paso**: Opcional - Implementar filtro de stock bajo en página de productos o continuar con siguiente US
+
+---
+
+## 2026-01-13 02:00 - Testing Documentation Suite
+- **Implementado**: Documentación completa de testing y herramientas
+- **Archivos creados**:
+  - TESTING.md (17KB) - Plan completo con 50+ test cases
+  - TESTING-CHECKLIST.md (3.5KB) - Checklist rápido de 30 min
+  - TESTING-README.md (6KB) - Guía paso a paso
+  - scripts/generate-test-data.js - Generador de datos de prueba
+- **Learnings para futuras iteraciones**:
+  - Testing documentation antes del release reduce tiempo de QA
+  - 3 niveles de testing (smoke/basic/critical) permite validación flexible
+  - Script de datos de prueba automatiza setup de testing
+  - Checklist interactivo facilita tracking de progreso
+  - Casos de testing críticos documentados previenen regresiones
+  - Test data generator debe crear escenarios reales (stock bajo, sin stock, normal)
+  - Formato estructurado para reportar bugs acelera fixes
+  - Criterios de aprobación claros facilitan decisión go/no-go
+  - Videos de flujos críticos ayudan a onboarding y debugging
+- **Próximo paso**: Ejecutar testing manual en navegador o continuar con US restantes
