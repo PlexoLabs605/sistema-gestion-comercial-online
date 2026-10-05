@@ -47,6 +47,43 @@ Desde **Configuración** cada negocio define: rubro, datos fiscales (encabezado 
 
 La importación desde Excel usa una planilla genérica: la fila 1 lleva encabezados (`Nombre` obligatorio; `Marca`, `Categoría`, `SKU`, `Código de barras`, atributos, `Costo`, `Stock` opcionales).
 
+## Diseño (sistema visual)
+
+- **Tokens** en `src/app/globals.css` (Tailwind v4 `@theme`): `brand` (violeta Plexo, único color de acción), neutros `zinc`, estados `emerald`/`amber`/`red` solo para estados.
+- **Tipografía**: Inter (UI) y JetBrains Mono; los montos usan cifras tabulares.
+- **Componentes** en `src/components/ui/`: `Button`/`LinkButton`, `Card`, `Badge`, `PageHeader`, `StatCard`, `EmptyState`, `Skeleton` (mismos nombres que en Mi Club).
+- **Formatos** únicos en `src/lib/format.ts`: `formatMoney` ($ 1.234.567), `formatDate`, `formatDateTime`, y `dateInputToInstant` para guardar fechas sin corrimiento de zona horaria.
+- **Menú** agrupado en `src/components/navigation.ts`; se filtra por rol con `role-permissions.ts`. En las páginas, `useModules()` oculta acciones que el rol no puede hacer.
+- **Gráficos**: Recharts, una sola serie en el color de marca (`src/components/charts/SalesChart.tsx`).
+
+## Probar en tu máquina (con datos de demo, sin configurar Google)
+
+Necesitás Node 20.9+ y Docker (para Postgres).
+
+```bash
+docker run -d --name gestion-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=gestion -p 5432:5432 postgres:16
+git clone https://github.com/PlexoLabs605/sistema-gestion-comercial-online.git
+cd sistema-gestion-comercial-online
+git checkout claude/affectionate-franklin-7yr7oj
+```
+
+Crear un archivo `.env` con:
+
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/gestion"
+AUTH_SECRET="cualquier-texto-largo"
+AUTH_DEV_LOGIN=true
+```
+
+```bash
+npm install
+npm run db:migrate
+npm run demo
+npm run dev
+```
+
+Abrir http://localhost:3000 y usar **Ingreso de desarrollo** con `demo@local.test`. Ese ingreso solo existe con `npm run dev` y `AUTH_DEV_LOGIN=true`; en producción no está.
+
 ## Desarrollo local
 
 ```bash
